@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Due Manager Offline v1.6</title>
+<title>Due Manager v2.0</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.1/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#17243a;font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif}header{background:#142b4a;color:#fff;padding:17px max(15px,calc((100% - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font-size:21px;margin:0}main{max-width:1100px;margin:20px auto;padding:0 14px}.panel{background:#fff;border:1px solid #e3e9f1;border-radius:14px;padding:16px;margin-bottom:15px;box-shadow:0 3px 12px #162b4708}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.stat{background:#edf4ff;padding:14px;border-radius:11px}.stat small{color:#60718a}.stat strong{display:block;font-size:23px;margin-top:5px}.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.field{display:flex;flex:1;min-width:145px;flex-direction:column;gap:5px}label{font-size:13px;color:#596982}input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;background:white}button{border:0;border-radius:9px;background:#1767d2;color:white;padding:10px 14px;font:inherit;cursor:pointer}button.secondary{background:#e8eef7;color:#1c3553}button.danger{background:#b42318}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#e8eef7;color:#203650}.tabs button.active{background:#1767d2;color:white}.hidden{display:none!important}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:10px 8px;text-align:left;border-bottom:1px solid #edf0f5;white-space:nowrap}th{color:#65738a}.muted{font-size:13px;color:#6b7890}.notice{background:#fff7e5;color:#76500a;padding:11px;border-radius:9px;font-size:13px}.actions button{padding:7px 9px;font-size:12px}.titleline{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.titleline h2,.panel h2{font-size:18px;margin:0 0 10px}.positive{color:#137547}
 @media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}header{align-items:flex-start;flex-direction:column}.stat strong{font-size:20px}.panel{padding:13px}}
 </style></head><body>
-<header><div><h1>📒 Due Manager</h1><div class="muted" style="color:#d3e1f2">Offline • দোকানভিত্তিক বাকি হিসাব</div></div><button class="secondary" id="quickBackup">Backup</button></header>
-<main>
-<div class="notice" style="margin-bottom:14px">এটি সম্পূর্ণ Offline ভার্সন। কোনো Login বা Supabase লাগবে না। ডেটা এই ব্রাউজারেই সেভ হবে। নিয়মিত Backup ডাউনলোড করে রাখুন।</div>
+<header><div><h1>📒 Due Manager</h1><div class="muted" style="color:#d3e1f2">Cloud • দোকানভিত্তিক বাকি হিসাব</div></div><div class="row" style="align-items:center"><span class="muted" id="syncMsg" style="color:#d3e1f2"></span><button class="secondary hidden" id="quickBackup">Backup</button><button class="secondary hidden" id="logoutBtn">Logout</button></div></header>
+<main><div id="authBox" class="panel hidden" style="max-width:420px;margin:40px auto"><h2>Login</h2><form id="authForm"><div class="field"><label>Email</label><input id="authEmail" type="email" required></div><div class="field" style="margin-top:10px"><label>Password</label><input id="authPass" type="password" required></div><button style="margin-top:12px;width:100%">Login</button><p class="muted" id="authMsg"></p></form></div><div id="appWrap" class="hidden">
+<div class="notice" style="margin-bottom:14px">ডেটা Supabase Cloud-এ সেভ হচ্ছে। তবুও মাঝে মাঝে Backup ডাউনলোড করে রাখুন।</div>
 <div class="grid"><div class="stat"><small>মোট কেনাকাটা</small><strong id="totalBuy">৳০</strong></div><div class="stat"><small>মোট পরিশোধ</small><strong id="totalPaid">৳০</strong></div><div class="stat"><small>বর্তমান বাকি</small><strong id="totalDue">৳০</strong></div><div class="stat"><small>মোট দোকান</small><strong id="shopCount">০</strong></div></div>
 <div class="tabs"><button class="active" data-tab="transactions">লেনদেন</button><button data-tab="shops">দোকান</button><button data-tab="history">পেমেন্ট ইতিহাস</button><button data-tab="dailyReport">দৈনিক ক্রয় রিপোর্ট</button><button data-tab="backup">Backup / Restore</button></div>
 <section id="transactions" class="panel"><h2>নতুন কেনাকাটা যোগ করুন</h2>
@@ -24,14 +24,14 @@
 <div class="row" style="margin-top:10px"><div class="field"><label>নোট / কাকে দিয়েছেন</label><input id="payNote" placeholder="যেমন: দোকানদারকে হাতে নগদ"></div><div class="field"><label>প্রমাণের ছবি (ঐচ্ছিক)</label><input id="payProof" type="file" accept="image/*"></div></div>
 <p class="muted">Cash হলে Transaction ID ফাঁকা রাখতে পারো। বিকাশ/নগদ/ব্যাংকের Screenshot বা রসিদের ছবি যুক্ত করতে পারো (ছবি সর্বোচ্চ ১.৫ MB)।</p><button>পেমেন্ট সংরক্ষণ</button></form></div>
 <section id="backup" class="panel hidden"><h2>Backup ও Restore</h2><p class="muted">Backup ফাইল নিরাপদ জায়গায় রাখুন। অন্য ব্রাউজার বা ফোনে নিতে Restore ব্যবহার করুন।</p><div class="row"><button id="export">JSON Backup ডাউনলোড</button><label class="field">Backup ফাইল Restore<input id="restoreFile" type="file" accept=".json,application/json"></label></div><p id="backupMsg" class="muted"></p><div class="notice" style="margin-top:12px">Restore করলে বর্তমান ডেটার সঙ্গে Backup-এর ডেটা প্রতিস্থাপিত হবে। আগে বর্তমান ডেটার Backup নিন।</div></section>
-</main>
+</div></main>
 <script>
 const KEY='due_manager_offline_v1';let data={shops:[],purchases:[],payments:[]};const $=id=>document.getElementById(id);
 const nowLocal=()=>{let d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)};$('date').value=nowLocal();
 function showDateTime(v){if(!v)return '—';let d=new Date(v);if(isNaN(d))return esc(v);return d.toLocaleDateString('bn-BD')+' '+d.toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit',hour12:true})}
 const money=n=>'৳'+Number(n||0).toLocaleString('en-BD',{maximumFractionDigits:2});
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function save(){render();sync()}
 function load(){try{let d=JSON.parse(localStorage.getItem(KEY)||'{}');data={shops:Array.isArray(d.shops)?d.shops:[],purchases:Array.isArray(d.purchases)?d.purchases:[],payments:Array.isArray(d.payments)?d.payments:[]}}catch(e){alert('সংরক্ষিত ডেটা পড়া যায়নি। Backup থাকলে Restore করুন।')}render()}
 function paid(id){return data.payments.reduce((s,p)=>s+Number(p.purchaseId===id?p.amount:0)+((p.allocations||[]).filter(a=>a.purchaseId===id).reduce((n,a)=>n+Number(a.amount||0),0)),0)}
 function shopTotals(id){let ps=data.purchases.filter(p=>p.shopId===id),buy=ps.reduce((s,p)=>s+Number(p.amount),0),pay=ps.reduce((s,p)=>s+paid(p.id),0);return{buy,pay,due:buy-pay}}
@@ -61,5 +61,30 @@ function download(blob,name){let a=document.createElement('a'),u=URL.createObjec
 function backup(){download(new Blob([JSON.stringify({...data,backupDate:new Date().toISOString()},null,2)],{type:'application/json'}),'due-manager-backup.json');$('backupMsg').textContent='Backup ডাউনলোড হয়েছে।'}
 $('export').onclick=backup;$('quickBackup').onclick=backup;
 $('restoreFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.shops)||!Array.isArray(d.purchases)||!Array.isArray(d.payments))throw Error('Backup format সঠিক নয়');if(!confirm('বর্তমান ডেটা প্রতিস্থাপন করে Backup Restore করবেন?'))return;data={shops:d.shops,purchases:d.purchases,payments:d.payments};save();$('backupMsg').textContent='Restore সফল হয়েছে।'}catch(err){alert('Restore হয়নি: '+err.message)}e.target.value=''};
-load();
+
+const SB=supabase.createClient('https://ptyycsyhqiudcvyakosx.supabase.co','sb_publishable_c7cJaVv6Vi_kdW1RWcek7Q_gd47cqgd');
+let user=null,snap={shops:{},purchases:{},payments:{}},chain=Promise.resolve();
+const MAP={
+shops:{t:'shops',to:s=>({id:s.id,name:s.name,phone:s.phone||'',address:s.address||''}),from:r=>({id:r.id,name:r.name,phone:r.phone||'',address:r.address||''})},
+purchases:{t:'purchases',to:p=>({id:p.id,shop_id:p.shopId,date:p.date,description:p.desc,qty:p.qty??null,unit:p.unit||null,amount:p.amount,note:p.note||''}),from:r=>({id:r.id,shopId:r.shop_id,date:r.date,desc:r.description,qty:r.qty===null?undefined:Number(r.qty),unit:r.unit||undefined,amount:Number(r.amount),note:r.note||''})},
+payments:{t:'payments',to:p=>({id:p.id,purchase_id:p.purchaseId||null,shop_id:p.shopId||null,allocations:p.allocations||[],date:p.date,amount:p.amount,method:p.method||null,txn:p.txn||'',note:p.note||'',proof:p.proof||'',bulk:!!p.bulk}),from:r=>({id:r.id,purchaseId:r.purchase_id,shopId:r.shop_id||'',allocations:r.allocations||[],date:r.date,amount:Number(r.amount),method:r.method||'',txn:r.txn||'',note:r.note||'',proof:r.proof||'',bulk:!!r.bulk})}};
+const KS=['shops','purchases','payments'];
+function setMsg(t,bad){$('syncMsg').textContent=t;$('syncMsg').style.color=bad?'#ffb4a8':'#d3e1f2'}
+async function fetchAll(t){let out=[],from=0;for(;;){const {data:r,error}=await SB.from(t).select('*').order('id').range(from,from+999);if(error)throw error;out=out.concat(r);if(r.length<1000)break;from+=1000}return out}
+async function cloudLoad(){const d={};for(const k of KS){d[k]=(await fetchAll(MAP[k].t)).map(MAP[k].from);snap[k]={};d[k].forEach(x=>snap[k][x.id]=JSON.stringify(MAP[k].to(x)))}data=d;render()}
+function sync(){chain=chain.then(doSync).catch(e=>{setMsg('⚠️ Cloud-এ সেভ হয়নি',true);alert('Cloud-এ সেভ হয়নি: '+(e.message||e)+'\nএকটি Backup ডাউনলোড করে রাখুন।')});return chain}
+async function doSync(){if(!user)return;setMsg('সেভ হচ্ছে...');const cur={},del={};
+for(const k of KS){cur[k]={};data[k].forEach(x=>cur[k][x.id]=JSON.stringify(MAP[k].to(x)));del[k]=Object.keys(snap[k]).filter(id=>!(id in cur[k]))}
+for(const k of [...KS].reverse()){if(del[k].length){const {error}=await SB.from(MAP[k].t).delete().in('id',del[k]);if(error)throw error;del[k].forEach(id=>delete snap[k][id])}}
+for(const k of KS){const ch=data[k].filter(x=>snap[k][x.id]!==cur[k][x.id]);for(let i=0;i<ch.length;i+=20){const part=ch.slice(i,i+20);const {error}=await SB.from(MAP[k].t).upsert(part.map(MAP[k].to));if(error)throw error;part.forEach(x=>snap[k][x.id]=cur[k][x.id])}}
+setMsg('☁️ '+user.email)}
+function migrate(){if(data.shops.length||data.purchases.length||data.payments.length)return;try{let d=JSON.parse(localStorage.getItem(KEY)||'{}');if(!(d.shops||[]).length&&!(d.purchases||[]).length)return;if(confirm('এই ব্রাউজারে আগের Offline ডেটা পাওয়া গেছে। Cloud-এ আপলোড করবেন?')){data={shops:d.shops||[],purchases:d.purchases||[],payments:d.payments||[]};save()}}catch(e){}}
+async function enter(session){user=session?session.user:null;
+$('authBox').classList.toggle('hidden',!!user);$('appWrap').classList.toggle('hidden',!user);$('logoutBtn').classList.toggle('hidden',!user);$('quickBackup').classList.toggle('hidden',!user);
+if(!user){data={shops:[],purchases:[],payments:[]};snap={shops:{},purchases:{},payments:{}};render();setMsg('');return}
+setMsg('লোড হচ্ছে...');try{await cloudLoad();setMsg('☁️ '+user.email)}catch(e){setMsg('⚠️ লোড হয়নি: '+(e.message||e),true);return}
+migrate()}
+$('authForm').onsubmit=async e=>{e.preventDefault();$('authMsg').textContent='';const {data:d,error}=await SB.auth.signInWithPassword({email:$('authEmail').value.trim(),password:$('authPass').value});if(error){$('authMsg').textContent='Login হয়নি: '+error.message;return}$('authPass').value='';enter(d.session)};
+$('logoutBtn').onclick=async()=>{await SB.auth.signOut();enter(null)};
+SB.auth.getSession().then(({data:d})=>enter(d.session));
 </script></body></html>
